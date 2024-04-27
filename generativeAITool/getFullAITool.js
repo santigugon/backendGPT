@@ -4,58 +4,60 @@ const config = require("../db/knexfile")[process.env.NODE_ENV || "development"];
 const database = knex(config);
 
 const getFullAITool = async (rows) => {
-  for (const tool of rows) {
-    try {
-      const questions = await database("peopleAlsoAsk").where(
-        "aiToolId",
-        tool.id
-      );
-      const searches = await database("relatedSearches").where(
-        "aiToolId",
-        tool.id
-      );
-      const tasks = await getTasks(tool.id);
-      const categories = await getCategories(tool.id);
+  const updatedRows = await Promise.all(
+    rows.map(async (tool) => {
+      try {
+        const [questions, searches, tasks, categories] = await Promise.all([
+          database("peopleAlsoAsk").where("aiToolId", tool.id),
+          database("relatedSearches").where("aiToolId", tool.id),
+          getTasks(tool.id),
+          getCategories(tool.id),
+        ]);
 
-      tool.questions = questions;
-      tool.searches = searches;
-      tool.tasks = tasks;
-      tool.categories = categories;
-    } catch (error) {
-      console.error(error);
-    }
-  }
-  return rows;
+        return {
+          ...tool,
+          questions,
+          searches,
+          tasks,
+          categories,
+        };
+      } catch (error) {
+        console.error(error);
+        return tool; // Return tool without modifications if an error occurs
+      }
+    })
+  );
+
+  return updatedRows;
 };
-
 const getTasks = async (toolId) => {
-  const tasksArr = [];
   const taskIds = await database("ToolTaskRelation")
     .select("taskId")
     .where("toolId", toolId);
 
-  for (const { taskId } of taskIds) {
-    const task = await database("Task").select("value").where("id", taskId);
-    const value = task[0].value;
-    tasksArr.push(value);
-  }
-  return tasksArr;
+  const tasks = await database("Task")
+    .select("value")
+    .whereIn(
+      "id",
+      taskIds.map((t) => t.taskId)
+    );
+
+  return tasks.map((t) => t.value);
 };
 
 const getCategories = async (toolId) => {
-  const categoriesArr = [];
-  const categoriesIds = await database("RelationContentToTool")
+  const categoryIds = await database("RelationContentToTool")
     .select("contentTypeId")
     .where("aiToolId", toolId);
-  for (const { contentTypeId } of categoriesIds) {
-    const category = await database("ContentType")
-      .select("value")
-      .where("id", contentTypeId);
-    const value = category[0].value;
 
-    categoriesArr.push(value);
-  }
-  console.log(categoriesArr);
-  return categoriesArr;
+  const categories = await database("ContentType")
+    .select("value")
+    .whereIn(
+      "id",
+      categoryIds.map((c) => c.contentTypeId)
+    );
+
+  return categories.map((c) => c.value);
 };
+
 module.exports = getFullAITool;
