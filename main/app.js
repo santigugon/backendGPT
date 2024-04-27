@@ -9,12 +9,6 @@ const generativeAIToolRouter = require("../generativeAITool/generativeAIToolRout
 app.use(express.static("public"));
 app.use("/generativeAITool", generativeAIToolRouter);
 
-// database("GenerativeAITool")
-//   .then((rows) => {
-//     console.log(rows); // 'rows' is an array of objects, where each object represents a row in the 'users' table
-//   })
-//   .catch((error) => {
-//     console.error(error);
-//   });
+
 
 module.exports = app;
