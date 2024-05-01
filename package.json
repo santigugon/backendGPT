@@ -1,7 +1,9 @@
 {
   "dependencies": {
+    "body-parser": "^1.20.2",
     "express": "^4.17.1",
-    "pg": "^8.11.5",
-    "knex": "^0.21.18"
+    "http-proxy-middleware": "^3.0.0",
+    "knex": "^0.21.18",
+    "pg": "^8.11.5"
   }
 }
