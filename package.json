@@ -8,5 +8,16 @@
     "knex": "^0.21.18",
     "octokit": "^3.2.0",
     "pg": "^8.11.5"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node"
+  },
+  "scripts": {
+    "test": "jest",  
+    "start": "node server.js"  
   }
 }

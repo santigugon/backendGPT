@@ -99,9 +99,10 @@ const createAiTool = async (body) => {
     }
     await createCategories(Categories, insertIdAiTool);
     await createTasks(AITasks, insertIdAiTool);
+    return true;
     console.log("Data inserted successfully");
   } catch (error) {
-    console.error("Error inserting data into the database:", error);
+    throw error;
     return false;
   }
 };

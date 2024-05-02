@@ -1,6 +1,6 @@
 const express = require("express");
 const knex = require("knex");
-const config = require("../db/knexfile")[process.env.NODE_ENV || "development"];
+const config = require("../db/knexfile")["development"];
 const database = knex(config);
 const getFullAITool = require("./getFullAITool.js");
 const { createTasks, createAiTool } = require("./createAITool.js");
@@ -42,8 +42,8 @@ const generativeAIToolRouter = express.Router();
 // Use fetchAITools middleware for routes that need all tools
 generativeAIToolRouter.get("/", fetchAITools, async (req, res) => {
   const finalResponse = await getFullAITool(req.tools);
-  if (finalResponse.length === 0) res.status(404).send("No tools found");
-  res.status(200).send(finalResponse);
+  if (finalResponse.length === 0) return res.status(404).send("No tools found");
+  return res.status(200).send(finalResponse);
 });
 
 generativeAIToolRouter.get("/:id", fetchAIToolById, async (req, res) => {
@@ -62,7 +62,7 @@ generativeAIToolRouter.get("/task/:task", fetchAITools, async (req, res) => {
     tool.tasks.includes(task)
   );
   if (filteredResponse.length === 0)
-    res.status(404).send("No tools found with the given task");
+    return res.status(404).send("No tools found with the given task");
   else {
     res.status(200).send(filteredResponse);
   }
@@ -78,7 +78,7 @@ generativeAIToolRouter.get(
       tool.categories.includes(category)
     );
     if (filteredResponse.length === 0)
-      res.status(404).send("No tools found with the given category");
+      return res.status(404).send("No tools found with the given category");
     else {
       res.status(200).send(filteredResponse);
     }
@@ -100,6 +100,9 @@ generativeAIToolRouter.get("/trending/:trending", async (req, res) => {
       .limit(50); // Limiting to the top 50 results
 
     const finalResponse = await getFullAITool(tools);
+    if (finalResponse.length === 0) {
+      return res.status(404).send("No tools found");
+    }
     res.status(200).send(finalResponse);
   } catch (error) {
     console.error("Error fetching top 50 AI tools:", error);
@@ -160,6 +163,14 @@ generativeAIToolRouter.post("/", async (req, res) => {
   try {
     // Assume a function saveAITechnology exists to save data to a database
     const savedTechnology = await createAiTool(req.body);
+
+    if (savedTechnology === "Exists") {
+      return res.status(409).json({
+        status: 409,
+        message: "The AI tool already exists.",
+      });
+    }
+
     res.status(201).json({
       status: 201,
       message: "The AI tool was properly created",
@@ -206,6 +217,12 @@ generativeAIToolRouter.put("/:id", async (req, res) => {
       .json({ status: 400, message: "All fields are required." });
   }
   try {
+    const technology = await database("GenerativeAITool").where("id", id);
+    if (technology.length === 0) {
+      return res
+        .status(404)
+        .json({ status: 404, message: "AI tool not found." });
+    }
     // Assume a function saveAITechnology exists to save data to a database
     const updatedTechnology = await updateAiTool(req.body, id);
     res.status(200).json({
@@ -249,6 +266,10 @@ generativeAIToolRouter.patch("/trending/:id", async (req, res) => {
 generativeAIToolRouter.delete("/:id", async (req, res) => {
   const { id } = req.params;
   try {
+    const response = await database("GenerativeAITool").where("id", id);
+    if (response.length === 0) {
+      return res.status(404).send("No tool found with the given ID");
+    }
     await deleteAITool(id);
     res.status(200).send("The tool was properly deleted");
   } catch (error) {

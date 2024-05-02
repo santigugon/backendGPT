@@ -1,8 +1,9 @@
+process.env.NODE_ENV = "development";
 const express = require("express");
 const app = express();
 
 const knex = require("knex");
-const config = require("../db/knexfile")[process.env.NODE_ENV || "development"];
+const config = require("../db/knexfile")["development"];
 const database = knex(config);
 const generativeAIToolRouter = require("../generativeAITool/generativeAIToolRouter.js");
 const taskRouter = require("../tasks/tasksRouter.js");
@@ -25,5 +26,7 @@ app.use("/ai-info", generativeAIToolRouter);
 app.use("/ai-task", taskRouter);
 app.use("/ai-category", categoriesRouter);
 app.use("/git-info", gitRouter);
-
+if (process.env.NODE_ENV == "development") {
+  console.log("Test environment");
+}
 module.exports = app;
