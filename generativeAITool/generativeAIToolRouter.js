@@ -3,7 +3,10 @@ const knex = require("knex");
 const config = require("../db/knexfile")[process.env.NODE_ENV || "development"];
 const database = knex(config);
 const getFullAITool = require("./getFullAITool.js");
-const createAiTool = require("./createAITool.js");
+const { createTasks, createAiTool } = require("./createAITool.js");
+const { as } = require("../db/config.js");
+const { updateAiTool } = require("./updateAiTool.js");
+const { deleteAITool } = require("./deleteAITool.js");
 
 // Middleware to fetch AI tools
 async function fetchAITools(req, res, next) {
@@ -26,6 +29,7 @@ async function fetchAIToolById(req, res, next) {
     next(error);
   }
 }
+async function fieldsValidation(req, res, next) {}
 
 // Error handling middleware
 function errorHandler(err, req, res, next) {
@@ -103,6 +107,26 @@ generativeAIToolRouter.get("/trending/:trending", async (req, res) => {
   }
 });
 
+generativeAIToolRouter.get("/trending/category/:category", async (req, res) => {
+  const { category } = req.params;
+  try {
+    const categories = await database("ContentType").where("value", category);
+    if (categories.length === 0) {
+      return res.status(404).send("No category found with the given name");
+    } else {
+      const rows = await database("GenerativeAITool")
+        .where("ranking", ">", 0, "AND", "category", "=", category)
+        .orderBy("ranking", "asc")
+        .limit(50);
+      const finalResponse = await getFullAITool(rows);
+      res.status(200).send(finalResponse);
+    }
+  } catch (error) {
+    console.error("Error fetching top 50 AI tools:", error);
+    res.status(500).send("An error occurred while fetching the data.");
+  }
+});
+
 generativeAIToolRouter.post("/", async (req, res) => {
   const {
     name,
@@ -151,6 +175,91 @@ generativeAIToolRouter.post("/", async (req, res) => {
   }
 });
 
+generativeAIToolRouter.put("/:id", async (req, res) => {
+  const { id } = req.params;
+  const {
+    name,
+    referenceURL,
+    pricingModel,
+    licensingType,
+    description,
+    shortDescription,
+    urlLogo,
+    AITasks,
+    Categories,
+  } = req.body;
+
+  // Simple validation check
+  if (
+    !name ||
+    !referenceURL ||
+    !pricingModel ||
+    !licensingType ||
+    !description ||
+    !shortDescription ||
+    !urlLogo ||
+    !AITasks ||
+    !Categories
+  ) {
+    return res
+      .status(400)
+      .json({ status: 400, message: "All fields are required." });
+  }
+  try {
+    // Assume a function saveAITechnology exists to save data to a database
+    const updatedTechnology = await updateAiTool(req.body, id);
+    res.status(200).json({
+      status: 200,
+      message: "The AI tool was properly updated",
+    });
+  } catch (error) {
+    console.error("Server Error:", error.message);
+    res.status(500).json({
+      status: 500,
+      message:
+        "There was an internal server error, and there could not be a connection set to the database or there was an exception thrown",
+    });
+  }
+});
+
+generativeAIToolRouter.patch("/trending/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const technology = await database("GenerativeAITool").where("id", id);
+    if (technology.length === 0) {
+      return res.status(404).send("No tool found with the given ID");
+    } else {
+      await database("GenerativeAITool").where("id", id).update({
+        ranking: req.body.ranking,
+      });
+      res
+        .status(200)
+        .send(`The tool with name ${technology[0].name} was properly updated`);
+    }
+  } catch (error) {
+    console.error("Server Error:", error.message);
+    res.status(500).json({
+      status: 500,
+      message:
+        "There was an internal server error, and there could not be a connection set to the database or there was an exception thrown",
+    });
+  }
+});
+
+generativeAIToolRouter.delete("/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    await deleteAITool(id);
+    res.status(200).send("The tool was properly deleted");
+  } catch (error) {
+    console.error("Server Error:", error.message);
+    res.status(500).json({
+      status: 500,
+      message:
+        "There was an internal server error, and there could not be a connection set to the database or there was an exception thrown",
+    });
+  }
+});
 // Use error handling middleware at the end of your routes
 generativeAIToolRouter.use(errorHandler);
 

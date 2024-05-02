@@ -106,4 +106,6 @@ const createAiTool = async (body) => {
   }
 };
 
-module.exports = createAiTool;
+module.exports.createAiTool = createAiTool;
+module.exports.createCategories = createCategories;
+module.exports.createTasks = createTasks;
