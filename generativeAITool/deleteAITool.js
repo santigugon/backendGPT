@@ -1,6 +1,6 @@
 const { insertQuery, asyncQuery } = require("./asyncQueries");
 const knex = require("knex");
-const config = require("../db/knexfile")["development"];
+const config = require("../db/knexfile")[process.env.NODE_ENV];
 const database = knex(config);
 
 const deleteCategoriesRelation = async (aiToolId) => {

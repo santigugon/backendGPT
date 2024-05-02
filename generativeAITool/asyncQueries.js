@@ -10,13 +10,13 @@ const dbConfig = {
     database: "postgres",
     port: 5432,
   },
-  // production: {
-  //   host: "aws-0-us-west-1.pooler.supabase.com",
-  //   user: "postgres.rdifswycioilqlusyfqk",
-  //   password: "!GenAI-Map!!",
-  //   database: "postgres",
-  //   port: 5432,
-  // },
+  production: {
+    host: "aws-0-us-west-1.pooler.supabase.com",
+    user: "postgres.imyaahuvakpwgksjpjtl",
+    password: "!GenAI-Map!!",
+    database: "postgres",
+    port: 5432,
+  },
 };
 
 // Initialize the pool based on the environment

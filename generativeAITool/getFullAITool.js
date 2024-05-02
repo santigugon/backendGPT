@@ -1,6 +1,6 @@
 const knex = require("knex");
 const { as } = require("../db/config");
-const config = require("../db/knexfile")["development"];
+const config = require("../db/knexfile")[process.env.NODE_ENV];
 const database = knex(config);
 const getRelatedData = async (toolIds) => {
   const [questions, searches, tasksRelations, categoriesRelations] =

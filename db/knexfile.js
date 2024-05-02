@@ -5,6 +5,7 @@
  */
 module.exports = {
   development: {
+    ///TESTING
     client: "pg",
     connection: {
       host: "aws-0-us-west-1.pooler.supabase.com",
@@ -15,30 +16,15 @@ module.exports = {
     },
   },
 
-  // staging: {
-  //   client: "pg",
-  //   connection: {
-  //     host: "aws-0-us-west-1.pooler.supabase.com",
-  //     user: "postgres.imyaahuvakpwgksjpjtl",
-  //     password: "!GenAI-Map!!",
-  //     database: "postgres",
-  //     port: 5432,
-  //   },
-  // },
-
   production: {
-    client: "postgresql",
+    //PRODUCTION!
+    client: "pg",
     connection: {
-      database: "my_db",
-      user: "username",
-      password: "password",
-    },
-    pool: {
-      min: 2,
-      max: 10,
-    },
-    migrations: {
-      tableName: "knex_migrations",
+      host: "aws-0-us-west-1.pooler.supabase.com",
+      user: "postgres.imyaahuvakpwgksjpjtl",
+      password: "!GenAI-Map!!",
+      database: "postgres",
+      port: 5432,
     },
   },
 };

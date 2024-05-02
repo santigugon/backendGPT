@@ -1,6 +1,6 @@
 const express = require("express");
 const knex = require("knex");
-const config = require("../db/knexfile")["development"];
+const config = require("../db/knexfile")[process.env.NODE_ENV];
 const database = knex(config);
 const getReadMe = require("./getReadMe.js");
 
