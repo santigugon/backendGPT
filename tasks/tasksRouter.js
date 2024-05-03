@@ -1,6 +1,6 @@
 const express = require("express");
 const knex = require("knex");
-const config = require("../db/knexfile")["development"];
+const config = require("../db/knexfile")[process.env.NODE_ENV || "development"];
 const database = knex(config);
 const { createTasks } = require("../generativeAITool/createAITool.js");
 
@@ -8,11 +8,16 @@ const taskRouter = express.Router();
 
 taskRouter.get("/", async (req, res) => {
   const rows = await database("Task");
+  if (rows.length === 0) return res.status(404).send("No tasks found");
   try {
     res.status(200);
     res.send(rows); // 'rows' is an array of objects, where each object represents a row in the 'users' table
   } catch (error) {
-    console.error(error);
+    return res.status(500).send({
+      status: 500,
+      error:
+        "There was an internal server error, and there could not be a connection set to the database or there was an exception thrown",
+    });
   }
 });
 taskRouter.patch("/:id", async (req, res) => {

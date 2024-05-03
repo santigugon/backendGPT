@@ -15,8 +15,13 @@ gitHubTable.get("/", async (req, res) => {
 gitHubTable.get("/repo/:owner/:repo", async (req, res) => {
   const { owner, repo } = req.params;
   console.log(`Owner: ${owner}, Repository: ${repo}`);
-  const readMe = await getReadMe(owner, repo);
-  res.status(200).send(readMe);
+  try {
+    const readMe = await getReadMe(repo, owner);
+
+    return res.status(200).send(readMe);
+  } catch (error) {
+    res.status(404).send("No ReadMe found");
+  }
 });
 
 module.exports = gitHubTable;

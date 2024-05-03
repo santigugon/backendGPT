@@ -7,88 +7,57 @@ const config = require("../db/knexfile")["development"];
 const database = knex(config);
 
 async function generateAITools() {
-  // Starting index for name
-  let nameIndex = 1;
-  const totalRequests = 5; // Total number of requests to send
-
-  for (let i = 0; i < 5; i++) {
-    const postData = {
-      name: `new Name ${nameIndex + i}`, // Increment name in each iteration
-      referenceURL: "https://Urlexample.com",
-      pricingModel: "FREE or FREEMIUM or PAID",
-      licensingType: "(Private or OpenSource) and company Name",
-      description: "Long Text with all the description",
-      shortDescription: "A short description like the one giving for previews",
-      urlLogo: "A logo for the url to be post",
-      AITasks: ["List", "of", "possible", "Ai", "tasks"],
-      Categories: ["NLP", "Code", "Text"],
+  try {
+    // Assume 'database' function returns the last index or max index used so far
+    const validData = {
+      name: "New AI Tool",
+      referenceURL: "https://example.com",
+      pricingModel: "FREE",
+      licensingType: "OpenSource",
+      description: "A useful AI tool",
+      shortDescription: "Useful tool",
+      urlLogo: "https://example.com/logo.png",
+      AITasks: ["task1", "task2"],
+      Categories: ["NLP", "Text"],
     };
-
-    // Perform POST request with each modified postData object
-    const response = await request(app)
-      .post("/ai-info")
-      .send(postData)
-      .expect(201) // 201 is the proper status code for a successful POST request according to our documentation
-      .catch((err) => {
-        console.error(`Error when sending request ${i + 1}: ${err.message}`);
-        return res
-          .status(500)
-          .json({ error: "Internal server error during testing" });
-      });
+    const response = await request(app).post("/ai-info").send(validData);
+  } catch (e) {
+    console.error("Error generating AI tools:", e);
+    throw e;
   }
 }
 
+const deleteAITools = async () => {
+  await asyncQuery('DELETE FROM "ToolTaskRelation" ', []);
+  await asyncQuery('DELETE FROM "RelationContentToTool" ', []);
+  await asyncQuery('DELETE FROM "GenerativeAITool" ', []); // Clear the table
+};
+
 if (process.env.NODE_ENV === "development") {
   describe("Generative AI Tool API Tests", () => {
-    // Setup a known state before any tests run
-
     beforeAll(async () => {
-      await asyncQuery('DELETE FROM "ToolTaskRelation" ', []);
-      await asyncQuery('DELETE FROM "RelationContentToTool" ', []);
-      await asyncQuery('DELETE FROM "GenerativeAITool" ', []); // Clear the table
-      //await generateAITools();
+      await deleteAITools();
     }, 30000);
 
-    // Clean up or reset the state after each test
+    // Clean up or reset the state after each test creating a single tool
+    beforeEach(async () => {
+      await deleteAITools();
+      await generateAITools();
+    });
     afterEach(async () => {
       // Code to clear or reset the database state
+      await deleteAITools();
     });
 
     // Final cleanup after all tests are done
     afterAll(async () => {
-      await asyncQuery('DELETE FROM "ToolTaskRelation" WHERE "toolId"<$1', [
-        17,
-      ]);
-      await asyncQuery(
-        'DELETE FROM "RelationContentToTool" WHERE "aiToolId"<$1',
-        [17]
-      );
-      // Code to close database connections or other cleanup actions
-    });
-
-    describe("GET /ai-info-empty", () => {
-      it("should return 404 when no AI tools are found", async () => {
-        const response = await request(app).get("/ai-info");
-        expect(response.statusCode).toEqual(404);
-      });
-      it("should return 404 when no trending AI tools are found", async () => {
-        const response = await request(app).get("/ai-info/trending/true");
-        expect(response.statusCode).toEqual(404);
-      });
-      it("should return 404 when no AI tools are found by category", async () => {
-        const response = await request(app).get("/ai-info/category/NLP");
-        expect(response.statusCode).toEqual(404);
-      });
-      it("should return 404 when no AI tools are found by task", async () => {
-        const response = await request(app).get("/ai-info/task/task1");
-        expect(response.statusCode).toEqual(404);
-      });
+      await deleteAITools();
     });
 
     // TEST CASE for POST /ai-info
     describe("POST /ai-info", () => {
       // CASE, when the data is invalid
-      it("should return an error for invalid AI tool data", async () => {
+      it("should return an status error 400 for invalid AI tool data payload ", async () => {
         const invalidData = {}; // Empty data to simulate a bad request
         const response = await request(app).post("/ai-info").send(invalidData);
         expect(response.statusCode).toEqual(400);
@@ -96,9 +65,9 @@ if (process.env.NODE_ENV === "development") {
       });
 
       // CASE, when the data is valid
-      it("should create a new AI tool", async () => {
+      it("should create a new AI tool and return status 201", async () => {
         const validData = {
-          name: "New AI Tool",
+          name: "New AI Tool POST",
           referenceURL: "https://example.com",
           pricingModel: "FREE",
           licensingType: "OpenSource",
@@ -118,17 +87,22 @@ if (process.env.NODE_ENV === "development") {
     });
 
     describe("GET /ai-info", () => {
-      it("should fetch all AI tools", async () => {
+      it("should fetch all AI tools and return status 200", async () => {
         const response = await request(app).get("/ai-info");
         expect(response.statusCode).toEqual(200);
         expect(response.body.length).toBeGreaterThan(0);
         expect(Array.isArray(response.body)).toBeTruthy();
       });
+      it("should return 404 when no AI tools are found", async () => {
+        await deleteAITools();
+        const response = await request(app).get("/ai-info");
+        expect(response.statusCode).toEqual(404);
+      });
     });
 
     describe("GET /ai-info/:id", () => {
       //CASE valid id
-      it("should fetch an AI tool by ID", async () => {
+      it("should fetch an AI tool by ID and return status 200", async () => {
         const responseQ = await database("GenerativeAITool").limit(1); // Assuming this ID exists
 
         const aiToolId = responseQ[0].id;
@@ -152,6 +126,11 @@ if (process.env.NODE_ENV === "development") {
         expect(response.body.length).toBeGreaterThan(0);
         expect(Array.isArray(response.body)).toBeTruthy();
       });
+      it("should return 404 when no AI tools are found by category", async () => {
+        await deleteAITools();
+        const response = await request(app).get("/ai-info/category/NLP");
+        expect(response.statusCode).toEqual(404);
+      });
     });
 
     describe("GET /ai-info/task/:task", () => {
@@ -161,6 +140,11 @@ if (process.env.NODE_ENV === "development") {
         expect(response.statusCode).toEqual(200);
         expect(response.body.length).toBeGreaterThan(0);
         expect(Array.isArray(response.body)).toBeTruthy();
+      });
+      it("should return 404 when no AI tools are found by task", async () => {
+        await deleteAITools();
+        const response = await request(app).get("/ai-info/task/task1");
+        expect(response.statusCode).toEqual(404);
       });
     });
 
@@ -186,17 +170,34 @@ if (process.env.NODE_ENV === "development") {
       });
     });
 
-    describe("GET /ai-info/trending", () => {
+    describe("GET /ai-info/trending/:bool", () => {
+      it("should return 404 when no trending AI tools are found", async () => {
+        const response = await request(app).get("/ai-info/trending/true");
+        expect(response.statusCode).toEqual(404);
+      });
       //CASE valid and double check the past patch check by ensuring the ranking is properly set
       it("should fetch all AI tools in trending order and return status 200, ", async () => {
+        const responseQ = await database("GenerativeAITool").limit(1); // Assuming this ID exists
+
+        const aiToolId = responseQ[0].id;
+        await request(app)
+          .patch(`/ai-info/trending/${aiToolId}`)
+          .send({ ranking: 1 });
         const response = await request(app).get("/ai-info/trending/true");
         expect(response.statusCode).toEqual(200);
         expect(Array.isArray(response.body)).toBeTruthy();
         expect(response.body.length).toBeGreaterThan(0);
         expect(response.body[0]).toHaveProperty("ranking", "1");
       });
+
       //CASE valid where we check by category
       it("should return ranking by category and return status 200", async () => {
+        const responseQ = await database("GenerativeAITool").limit(1); // Assuming this ID exists
+
+        const aiToolId = responseQ[0].id;
+        await request(app)
+          .patch(`/ai-info/trending/${aiToolId}`)
+          .send({ ranking: 1 });
         const response = await request(app).get(
           "/ai-info/trending/category/NLP"
         );
@@ -204,6 +205,11 @@ if (process.env.NODE_ENV === "development") {
         expect(Array.isArray(response.body)).toBeTruthy();
         expect(response.body.length).toBeGreaterThan(0);
         expect(response.body[0].categories).toContain("NLP");
+      });
+      it("should return 404 when no trending AI tools are found", async () => {
+        await deleteAITools();
+        const response = await request(app).get("/ai-info/trending/true");
+        expect(response.statusCode).toEqual(404);
       });
     });
 
@@ -279,7 +285,7 @@ if (process.env.NODE_ENV === "development") {
 
   describe("TASK API TESTS", () => {
     beforeAll(async () => {
-      generateAITools();
+      await generateAITools();
     }, 30000);
     //Case when the data is valid
     describe("GET/ai-task", () => {
@@ -288,6 +294,12 @@ if (process.env.NODE_ENV === "development") {
         expect(response.statusCode).toEqual(200);
         expect(Array.isArray(response.body)).toBeTruthy();
         expect(response.body.length).toBeGreaterThan(0);
+      });
+      it("should return 404 when no tasks are found", async () => {
+        await asyncQuery('DELETE FROM  "ToolTaskRelation"', []); // Clear the table
+        await asyncQuery('DELETE FROM "Task" ', []); // Clear the table
+        const response = await request(app).get("/ai-task");
+        expect(response.statusCode).toEqual(404);
       });
     });
 
@@ -298,6 +310,11 @@ if (process.env.NODE_ENV === "development") {
           .send({ value: "New Task" });
         expect(response.statusCode).toEqual(201);
         expect(response.text).toEqual("The ai task was properly created");
+      });
+
+      it("should return 400 if the task is not provided", async () => {
+        const response = await request(app).post("/ai-task").send({});
+        expect(response.statusCode).toEqual(400);
       });
     });
 
@@ -323,11 +340,19 @@ if (process.env.NODE_ENV === "development") {
   });
 
   describe("Category API Tests", () => {
-    it("Should return all categories and status 200", async () => {
-      const response = await request(app).get("/ai-category");
-      expect(response.statusCode).toEqual(200);
-      expect(Array.isArray(response.body)).toBeTruthy();
-      expect(response.body.length).toBeGreaterThan(0);
+    describe("GET /ai-category", () => {
+      it("Should return all categories and status 200", async () => {
+        const response = await request(app).get("/ai-category");
+        expect(response.statusCode).toEqual(200);
+        expect(Array.isArray(response.body)).toBeTruthy();
+        expect(response.body.length).toBeGreaterThan(0);
+      });
+      it("Should return 404 when no categories are found", async () => {
+        await deleteAITools();
+        await asyncQuery('DELETE FROM "ContentType" ', []); // Clear the table
+        const response = await request(app).get("/ai-category");
+        expect(response.statusCode).toEqual(404);
+      });
     });
   });
 } else {

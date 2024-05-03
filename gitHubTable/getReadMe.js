@@ -21,7 +21,7 @@ const getReadMe = async (owner, repo) => {
     const decodedContent = Buffer.from(encodedContent, "base64").toString(
       "utf8"
     );
-    console.log(decodedContent);
+
     return decodedContent;
   } catch (e) {
     console.error(e);
